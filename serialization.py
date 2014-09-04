@@ -2,6 +2,29 @@ from datetime import datetime
 from marshmallow import Serializer, fields, pprint
 
 
+class BaseSerializer(Serializer):
+    pass
+
+@BaseSerializer.data_handler
+def jsonapify(serializer, data, obj):
+    def parse(obj, keys):
+        key = keys[0]
+        if isinstance(obj, list):
+            return [parse(e, keys) for e in obj]
+        if len(keys) == 1:
+            return obj[key]
+        else:
+            return parse(obj[key], keys[1:])
+
+    def get_linked(obj, linked):
+        return {key: parse(obj, keystr.split(".")) for key, keystr in linked.items()}
+
+    return {
+        serializer.ROOT: data,
+        "linked": get_linked(obj, serializer.LINKED)
+    }
+
+
 class TicketReservationSerializer(Serializer):
     links = fields.Method('get_links')
 
@@ -15,38 +38,18 @@ class TicketReservationSerializer(Serializer):
         additional = ('price', 'fee', 'vat', 'fee_vat', 'uuid', 'data')
 
 
-class ReservationSerializer(Serializer):
+class ReservationSerializer(BaseSerializer):
     ROOT = 'reservations'
+    LINKED = {
+        'ticket_types': 'tickets.ticket_type',
+        'events': 'tickets.event',
+    }
     last_touched = fields.DateTime(format='%Y-%m-%dT%H:%M:%S')
     created = fields.DateTime(format='%Y-%m-%dT%H:%M:%S')
     ticket_reservations = fields.Nested(TicketReservationSerializer, attribute='tickets', many=True)
 
     class Meta:
         additional = ('data', 'reservation_id')
-
-
-@ReservationSerializer.data_handler
-def jsonapify(serializer, data, obj):
-    return {
-        serializer.ROOT: data,
-        "linked": get_links(obj, {
-            'ticket_types': 'tickets.ticket_type'
-        })
-    }
-
-
-def get_links(obj, linked):
-    return {key: parse(obj, keystr.split(".")) for key, keystr in linked.items()}
-
-
-def parse(obj, keys):
-    key = keys[0]
-    if isinstance(obj, list):
-        return [parse(e, keys) for e in obj]
-    if len(keys) == 1:
-        return obj[key]
-    else:
-        return parse(obj[key], keys[1:])
 
 
 reservation = {
