@@ -13,61 +13,73 @@ class BaseSerializer(Serializer):
 
 @BaseSerializer.data_handler
 def jsonapify(serializer, data, obj):
-    def get_data(schema, data):
-        k = schema.Meta.primary_key
-        n = schema.Meta.plural_name
-        return {n: {data[k]: data}}
-
-    def update_map(a, b):
-        for k, v in b.items():
-            if k in a:
-                a[k].update(v)
+    def add_links_from_field(field, data):
+        if isinstance(field, Linked):
+            plural_name = field.schema.Meta.plural_name
+            primary_key = field.schema.Meta.primary_key
+            name = field.schema.Meta.name
+            if field.many:
+                links = {plural_name: [o[primary_key] for o in data[plural_name]]}
             else:
-                a[k] = v
-        return a.copy()
+                links = {plural_name: data[name][primary_key]}
+            if 'links' in data:
+                data['links'].update(links)
+            else:
+                data['links'] = links
 
-    def depth_first(schema, data):
-        linked = dict()
-        for field in schema.declared_fields.values():
-            name = field.name
+    def add_links_form_schema(schema, data):
+        for field in schema.fields.values():
+            add_links_from_field(field, data)
+
             if isinstance(field, fields.Nested):
-                if isinstance(field, Embedded):
-                    if field.many:
-                        for e in data[name]:
-                            for f in field.schema.fields.values():
-                                if isinstance(f, Linked):
-                                    if f.many:
-                                        links = {f.schema.Meta.plural_name: [o[f.schema.Meta.primary_key] for o in e[f.schema.Meta.plural_name]]}
-                                    else:
-                                        links = {f.schema.Meta.plural_name: e[f.schema.Meta.name][f.schema.Meta.primary_key]}
-                                    if 'links' in e:
-                                        e['links'].update(links)
-                                    else:
-                                        e['links'] = links
-
+                name = field.name
                 if field.many:
                     for e in data[name]:
-                        p = depth_first(field.schema, e)
-                        linked = update_map(linked, p)
+                        add_links_form_schema(field.schema, e)
                 else:
-                    p = depth_first(field.schema, data[name])
-                    linked = update_map(linked, p)
-                if isinstance(field, Linked):
-                    del data[name]
-
-        return update_map(linked, get_data(schema, data))
+                    add_links_form_schema(field.schema, data[name])
 
 
-    linked = depth_first(serializer, data)
+    def get_linked():
+        def get_data(schema, data):
+            k = schema.Meta.primary_key
+            n = schema.Meta.plural_name
+            return {n: {data[k]: data}}
 
-    for key, val in linked.items():
-        linked[key] = val.values()
+        def update_map(a, b):
+            for k, v in b.items():
+                if k in a:
+                    a[k].update(v)
+                else:
+                    a[k] = v
+            return a.copy()
 
-    del linked[serializer.ROOT]
+        def _depth_first(schema, data, linked):
+            for field in schema.fields.values():
+                name = field.name
+                if isinstance(field, fields.Nested):
+                    if field.many:
+                        for e in data[name]:
+                            p = _depth_first(field.schema, e, linked)
+                            linked = update_map(linked, p)
+                    else:
+                        p = _depth_first(field.schema, data[name], linked)
+                        linked = update_map(linked, p)
+                    if isinstance(field, Linked):
+                        del data[name]
 
+            return update_map(linked, get_data(schema, data))
+
+        linked = dict()
+        _depth_first(serializer, data, linked)
+        for key, val in linked.items():
+            linked[key] = val.values()
+        return linked
+
+    add_links_form_schema(serializer, data)
     return {
         serializer.ROOT: data,
-        "linked": linked
+        "linked": get_linked()
     }
 
 
@@ -75,6 +87,7 @@ class EventTypeSerializer(Serializer):
     class Meta():
         primary_key = 'event_type_id'
         plural_name = 'event_types'
+        name = 'event_type'
         additional = ('event_type_id', 'organization_id')
 
 
@@ -94,6 +107,8 @@ class TicketTypeSerializer(Serializer):
         plural_name = 'ticket_types'
         name = 'ticket_type'
         additional = ("vat_factor", "name", "price", "ticket_type_id", "event_type_id", "identifier", "data")
+
+    event_type = Linked(EventTypeSerializer)
 
 
 class TicketReservationSerializer(Serializer):
@@ -134,6 +149,10 @@ reservation = {
                 "price": 25000,
                 "ticket_type_id": 2217311692,
                 "event_type_id": 1044709619,
+                "event_type": {
+                    "event_type_id": 1,
+                    "organization_id": "krogstad"
+                },
                 "identifier": "tt-student",
                 "data": {},
             },
@@ -170,6 +189,10 @@ reservation = {
                 "name": "Voksen",
                 "price": 25000,
                 "ticket_type_id": 78392173921,
+                "event_type": {
+                    "event_type_id": 1,
+                    "organization_id": "krogstad"
+                },
                 "event_type_id": 1044709619,
                 "identifier": "tt-voksen",
                 "data": {},
