@@ -52,26 +52,30 @@ def jsonapify(serializer, data, obj):
                     a[k].update(v)
                 else:
                     a[k] = v
-            return a.copy()
 
-        def _depth_first(schema, data, linked):
+        def df(schema, data, linked):
             for field in schema.fields.values():
-                name = field.name
-                if isinstance(field, fields.Nested):
-                    if field.many:
-                        for e in data[name]:
-                            p = _depth_first(field.schema, e, linked)
-                            linked = update_map(linked, p)
-                    else:
-                        p = _depth_first(field.schema, data[name], linked)
-                        linked = update_map(linked, p)
-                    if isinstance(field, Linked):
-                        del data[name]
+                _depth_first(field, data, linked)
 
-            return update_map(linked, get_data(schema, data))
+        def _depth_first(field, data, linked):
+            name = field.name
+            if isinstance(field, fields.Nested):
+                if field.many:
+                    for e in data[name]:
+                        df(field.schema, e, linked)
+                        if isinstance(field, Linked):
+                            update_map(linked, get_data(field.schema, e))
+                else:
+                    df(field.schema, data[name], linked)
+                    if isinstance(field, Linked):
+                        update_map(linked, get_data(field.schema, data[name]))
+
+                if isinstance(field, Linked):
+                    del data[name]
+
 
         linked = dict()
-        _depth_first(serializer, data, linked)
+        df(serializer, data, linked)
         for key, val in linked.items():
             linked[key] = val.values()
         return linked
@@ -96,7 +100,7 @@ class EventSerializer(Serializer):
         primary_key = 'event_id'
         plural_name = 'events'
         name = 'event'
-        additional = ('event_id',)
+        additional = ('event_id','name')
 
     event_type = Linked(EventTypeSerializer)
 
@@ -114,7 +118,8 @@ class TicketTypeSerializer(Serializer):
 class TicketReservationSerializer(Serializer):
     class Meta:
         primary_key = 'uuid'
-        plural_name = 'tickets'
+        plural_name = 'ticket_reservations'
+        name = 'ticket_reservation'
         additional = ('price', 'fee', 'vat', 'fee_vat', 'uuid', 'data')
 
     events = Linked(EventSerializer, many=True)
@@ -137,7 +142,7 @@ class ReservationSerializer(BaseSerializer):
 reservation = {
     "tickets": [
         {
-            "uuid": "389aa88d-728b-43d4-a647-6e60c026853b",
+            "uuid": "389aa88d-728b-a647-43d4-026853b6e60c",
             "fee": 2500,
             "event_id": 1615163368,
             "price": 25000,
@@ -161,14 +166,16 @@ reservation = {
             "data": {},
             "events": [
                 {
-                    "event_id": 1615163368,
+                    "event_id": 1,
+                    "name": "Gatebil",
                     "event_type": {
                         "event_type_id": 1,
                         "organization_id": "krogstad"
                     }
                 },
                 {
-                    'event_id': 783921,
+                    "event_id": 2,
+                    "name": "Pultostfestival",
                     "event_type": {
                         "event_type_id": 2,
                         "organization_id": "hansen"
@@ -178,7 +185,7 @@ reservation = {
             "vat": 0
         },
         {
-            "uuid": "389aa88d-728b-43d4-a647-6e60c026853b",
+            "uuid": "7a89c278-728b-43d4-a647-6e60c026853b",
             "fee": 2500,
             "event_id": 1615163368,
             "price": 25000,
@@ -202,14 +209,16 @@ reservation = {
             "data": {},
             "events": [
                 {
-                    "event_id": 1615163368,
+                    "event_id": 1,
+                    "name": "Gatebil",
                     "event_type": {
                         "event_type_id": 1,
                         "organization_id": "krogstad"
                     }
                 },
                 {
-                    'event_id': 783921,
+                    "event_id": 3,
+                    "name": "Vaernes airshow",
                     "event_type": {
                         "event_type_id": 2,
                         "organization_id": "hansen"
