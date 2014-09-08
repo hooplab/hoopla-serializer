@@ -15,7 +15,7 @@ class BaseSerializer(Serializer):
 def jsonapify(serializer, data, obj):
     def get_data(schema, data):
         k = schema.Meta.primary_key
-        n = schema.Meta.name
+        n = schema.Meta.plural_name
         return {n: {data[k]: data}}
 
     def update_map(a, b):
@@ -37,9 +37,9 @@ def jsonapify(serializer, data, obj):
                             for f in field.schema.fields.values():
                                 if isinstance(f, Linked):
                                     if f.many:
-                                        links = {f.schema.Meta.name: [o[f.schema.Meta.primary_key] for o in e[f.schema.Meta.name]]}
+                                        links = {f.schema.Meta.plural_name: [o[f.schema.Meta.primary_key] for o in e[f.schema.Meta.plural_name]]}
                                     else:
-                                        links = {f.schema.Meta.name: e[f.schema.Meta.single_name][f.schema.Meta.primary_key]}
+                                        links = {f.schema.Meta.plural_name: e[f.schema.Meta.name][f.schema.Meta.primary_key]}
                                     if 'links' in e:
                                         e['links'].update(links)
                                     else:
@@ -74,15 +74,15 @@ def jsonapify(serializer, data, obj):
 class EventTypeSerializer(Serializer):
     class Meta():
         primary_key = 'event_type_id'
-        name = 'event_types'
+        plural_name = 'event_types'
         additional = ('event_type_id', 'organization_id')
 
 
 class EventSerializer(Serializer):
     class Meta():
         primary_key = 'event_id'
-        name = 'events'
-        single_name = 'event'
+        plural_name = 'events'
+        name = 'event'
         additional = ('event_id',)
 
     event_type = Linked(EventTypeSerializer)
@@ -91,15 +91,15 @@ class EventSerializer(Serializer):
 class TicketTypeSerializer(Serializer):
     class Meta():
         primary_key = 'ticket_type_id'
-        name = 'ticket_types'
-        single_name = 'ticket_type'
+        plural_name = 'ticket_types'
+        name = 'ticket_type'
         additional = ("vat_factor", "name", "price", "ticket_type_id", "event_type_id", "identifier", "data")
 
 
 class TicketReservationSerializer(Serializer):
     class Meta:
         primary_key = 'uuid'
-        name = 'tickets'
+        plural_name = 'tickets'
         additional = ('price', 'fee', 'vat', 'fee_vat', 'uuid', 'data')
 
     events = Linked(EventSerializer, many=True)
@@ -109,7 +109,7 @@ class TicketReservationSerializer(Serializer):
 class ReservationSerializer(BaseSerializer):
     class Meta:
         primary_key = 'reservation_id'
-        name = 'reservations'
+        plural_name = 'reservations'
         additional = ('data', 'reservation_id')
 
     ROOT = 'reservations'
