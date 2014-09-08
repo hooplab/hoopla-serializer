@@ -1,4 +1,5 @@
 from datetime import datetime
+import itertools
 from marshmallow import Serializer, fields, pprint
 
 
@@ -7,22 +8,45 @@ class BaseSerializer(Serializer):
 
 @BaseSerializer.data_handler
 def jsonapify(serializer, data, obj):
-    def parse(obj, keys):
+    def parse(obj, keys, serializer):
         key = keys[0]
         if isinstance(obj, list):
-            return [parse(e, keys) for e in obj]
+            lst = [parse(e, keys, serializer) for e in obj]
+            if isinstance(lst[0], list):
+                return list(itertools.chain.from_iterable(lst))
+            else:
+                return lst
         if len(keys) == 1:
-            return obj[key]
+            raw = obj[key]
+            if isinstance(raw, list):
+                return [serializer(e).data for e in raw]
+            else:
+                return serializer(raw).data
         else:
-            return parse(obj[key], keys[1:])
+            return parse(obj[key], keys[1:], serializer)
 
     def get_linked(obj, linked):
-        return {key: parse(obj, keystr.split(".")) for key, keystr in linked.items()}
+        return {key: parse(obj, obje['key'].split("."), obje['serializer']) for key, obje in linked.items()}
 
     return {
         serializer.ROOT: data,
         "linked": get_linked(obj, serializer.LINKED)
     }
+
+
+class EventTypeSerializer(Serializer):
+    class Meta():
+        additional = ('event_type_id', 'organization_id')
+
+
+class EventSerializer(Serializer):
+    class Meta():
+        additional = ('event_id',)
+
+
+class TicketTypeSerializer(Serializer):
+    class Meta():
+        additional = ("vat_factor", "name", "price", "ticket_type_id", "event_type_id", "identifier", "data")
 
 
 class TicketReservationSerializer(Serializer):
@@ -41,8 +65,18 @@ class TicketReservationSerializer(Serializer):
 class ReservationSerializer(BaseSerializer):
     ROOT = 'reservations'
     LINKED = {
-        'ticket_types': 'tickets.ticket_type',
-        'events': 'tickets.event',
+        'ticket_types': {
+            'key': 'tickets.ticket_type',
+            'serializer': TicketTypeSerializer
+        },
+        'event_types': {
+            'key': 'tickets.events.event_type',
+            'serializer': EventTypeSerializer
+        },
+        'events': {
+            "key": 'tickets.events',
+            "serializer": EventSerializer
+        },
     }
     last_touched = fields.DateTime(format='%Y-%m-%dT%H:%M:%S')
     created = fields.DateTime(format='%Y-%m-%dT%H:%M:%S')
@@ -73,9 +107,22 @@ reservation = {
             "fee_vat": 0,
             "purchase_ref": "",
             "data": {},
-            "event": {
-                "event_id": 1615163368
-            },
+            "events": [
+                {
+                    "event_id": 1615163368,
+                    "event_type": {
+                        "event_type_id": 1,
+                        "organization_id": "krogstad"
+                    }
+                },
+                {
+                    'event_id': 783921,
+                    "event_type": {
+                        "event_type_id": 2,
+                        "organization_id": "hansen"
+                    }
+                }
+            ],
             "vat": 0
         },
         {
@@ -97,9 +144,22 @@ reservation = {
             "fee_vat": 0,
             "purchase_ref": "",
             "data": {},
-            "event": {
-                "event_id": 1615163368
-            },
+            "events": [
+                {
+                    "event_id": 1615163368,
+                    "event_type": {
+                        "event_type_id": 1,
+                        "organization_id": "krogstad"
+                    }
+                },
+                {
+                    'event_id': 783921,
+                    "event_type": {
+                        "event_type_id": 2,
+                        "organization_id": "hansen"
+                    }
+                }
+            ],
             "vat": 0
         }
     ],
