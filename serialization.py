@@ -1,6 +1,6 @@
 from datetime import datetime
-import itertools
-from marshmallow import Serializer, fields, pprint
+from marshmallow import Serializer, fields
+
 
 class Embedded(fields.Nested):
     pass
@@ -53,20 +53,20 @@ def jsonapify(serializer, data, obj):
                 else:
                     a[k] = v
 
-        def df(schema, data, linked):
+        def recur_schema(schema, data, linked):
             for field in schema.fields.values():
-                _depth_first(field, data, linked)
+                recur_field(field, data, linked)
 
-        def _depth_first(field, data, linked):
+        def recur_field(field, data, linked):
             name = field.name
             if isinstance(field, fields.Nested):
                 if field.many:
-                    for e in data[name]:
-                        df(field.schema, e, linked)
+                    for schema_data in data[name]:
+                        recur_schema(field.schema, schema_data, linked)
                         if isinstance(field, Linked):
-                            update_map(linked, get_data(field.schema, e))
+                            update_map(linked, get_data(field.schema, schema_data))
                 else:
-                    df(field.schema, data[name], linked)
+                    recur_schema(field.schema, data[name], linked)
                     if isinstance(field, Linked):
                         update_map(linked, get_data(field.schema, data[name]))
 
@@ -75,7 +75,7 @@ def jsonapify(serializer, data, obj):
 
 
         linked = dict()
-        df(serializer, data, linked)
+        recur_schema(serializer, data, linked)
         for key, val in linked.items():
             linked[key] = val.values()
         return linked
