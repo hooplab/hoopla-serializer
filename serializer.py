@@ -15,6 +15,24 @@ class Serializer(MarshmallowSerializer):
         return [field for field in self.fields.values() if isinstance(field, fields.Nested)]
 
 
+class BaseSerializer(Serializer):
+    def _postprocess(self, data, obj):
+        def add_links():
+            _add_links_from_schema(self, data)
+
+        def get_linked():
+            linked = dict()
+            _recur_schema(self, data, linked)
+            for key, val in linked.items():
+                linked[key] = val.values()
+            return linked
+
+        add_links()
+        return {
+            self.ROOT: data,
+            "linked": get_linked()
+        }
+
 def _add_links_from_field(field, data):
     if not isinstance(field, Linked):
         return
@@ -71,23 +89,3 @@ def _recur_field(field, data, linked):
 
     if isinstance(field, Linked):
         del data[name]
-
-
-@Serializer.data_handler
-def jsonapify(serializer, data, obj):
-
-    def add_links():
-        _add_links_from_schema(serializer, data)
-
-    def get_linked():
-        linked = dict()
-        _recur_schema(serializer, data, linked)
-        for key, val in linked.items():
-            linked[key] = val.values()
-        return linked
-
-    add_links()
-    return {
-        serializer.ROOT: data,
-        "linked": get_linked()
-    }

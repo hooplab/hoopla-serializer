@@ -1,5 +1,5 @@
 from datetime import datetime
-from serializer import Serializer, fields, Linked, Embedded
+from serializer import Serializer, BaseSerializer, fields, Linked, Embedded
 
 
 class EventTypeSerializer(Serializer):
@@ -41,7 +41,7 @@ class TicketReservationSerializer(Serializer):
     ticket_type = Linked(TicketTypeSerializer)
 
 
-class ReservationSerializer(Serializer):
+class ReservationSerializer(BaseSerializer):
     class Meta:
         primary_key = 'reservation_id'
         plural_name = 'reservations'
@@ -169,7 +169,7 @@ class UserSerializer(Serializer):
         additional = ('user_id', 'email', 'first_name', 'last_name')
 
 
-class PurchaseSerializer(Serializer):
+class PurchaseSerializer(BaseSerializer):
     ROOT = "purchases"
 
     class Meta():
