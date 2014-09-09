@@ -235,7 +235,162 @@ reservation = {
     "created": datetime.now(),
     "data": {}
 }
-serialized = ReservationSerializer(reservation)
 
+class TicketSerializer(Serializer):
+    class Meta():
+        primary_key = 'ticket_id'
+        name = 'ticket'
+        plural_name = 'tickets'
+
+        additional = ('ticket_id', 'price', 'fee', 'fee_vat')
+
+    user = Linked('UserSerializer', attribute="owner")
+
+
+class UserSerializer(Serializer):
+    class Meta():
+        primary_key = 'user_id'
+        name = 'user'
+        plural_name = 'users'
+
+        additional = ('user_id', 'email', 'first_name', 'last_name')
+
+
+class PurchaseSerializer(Serializer):
+    ROOT = "purchases"
+
+    class Meta():
+        additional = ('purchase_id', 'fee', 'finalized', 'created', 'amount', 'fee_vat', 'vat')
+
+    tickets = Linked(TicketSerializer, many=True)
+    user = Linked(UserSerializer)
+
+
+purchase = {
+    "purchase_id": 3623100207,
+    "ref_code": "FS78ZB3",
+    "fee": 1500,
+    "user_id": 3314774599,
+    "finalized": "2014-07-22T12:52:47Z",
+    "tickets": [
+        {
+            "purchase_id": 3623100207,
+            "ref_code": "H3UK6K3D3VM",
+            "fee": 1500,
+            "invoice_fee": None,
+            "event_id": 2072474058,
+            "price": 1000,
+            "ticket_type_id": 2220190969,
+            "event": {
+                "end": "2014-07-22T14:52:47Z",
+                "name": "event0ba7774a",
+                "created": "2014-07-22T12:52:47Z",
+                "event_id": 2072474058,
+                "invoice_allowed": False,
+                "event_type": {
+                    "organization_id": 2081098224,
+                    "last_modified": "2014-07-22T12:52:47Z",
+                    "event_type_id": 1732449176,
+                    "organization": {
+                        "country_code": "NO",
+                        "created": "2014-07-22T12:52:47Z",
+                        "txid": 214189,
+                        "organization_id": 2081098224,
+                        "is_vetted": False,
+                        "identifier": "org0ba7774a",
+                        "data": None,
+                        "zip_code": "7000"
+                    },
+                    "identifier": "event_type0ba7774a",
+                    "data": None
+                },
+                "max_capacity": 1000,
+                "is_published": False,
+                "event_type_id": 1732449176,
+                "is_cancelled": False,
+                "identifier": "event0ba7774a",
+                "data": {},
+                "start": "2014-07-22T13:52:47Z",
+                "description": None
+            },
+            "ticket_type": {
+                "vat_factor": 0,
+                "name": "ticket_type0ba7774a",
+                "price": 1000,
+                "ticket_type_id": 2220190969,
+                "event_type_id": 1732449176,
+                "identifier": "ticket_type0ba7774a",
+                "data": {},
+                "is_private": False,
+                "description": None
+            },
+            "txid": 214191,
+            "price_group": None,
+            "fee_vat": 0,
+            "ticket_id": "23471725260406897",
+            "invoice_fee_vat": None,
+            "purchase_ref": "FS78ZB3",
+            "owner": {
+                "phone_number": None,
+                "first_name": None,
+                "last_name": None,
+                "user_id": 3314774599,
+                "created": "2014-07-22T12:52:46Z",
+                "email_verified": None,
+                "txid": 214187,
+                "is_admin": False,
+                "phone_verified": None,
+                "data": None,
+                "email": "system_test+0ba7774a@hoopla.no"
+            },
+            "credits": [],
+            "data": None,
+            "is_revoked": False,
+            "vat": 0
+        }
+    ],
+    "created": "2014-07-22T12:52:47Z",
+    "order_ref": "bd4a50d6c056b2e37a2467069a16b07d789903536bb08eefec52873222924907",
+    "amount": 1000,
+    "fee_vat": 0,
+    "user": {
+        "phone_number": None,
+        "first_name": None,
+        "last_name": None,
+        "user_id": 3314774599,
+        "created": "2014-07-22T12:52:46Z",
+        "email_verified": None,
+        "txid": 214187,
+        "is_admin": False,
+        "phone_verified": None,
+        "data": None,
+        "email": "system_test+0ba7774a@hoopla.no"
+    },
+    "payex_data": None,
+    "data": {
+        "tickets": [
+            {
+                "price_group": None,
+                "ticket": "ticket_type0ba7774a",
+                "data": None,
+                "event": "event0ba7774a"
+            }
+        ],
+        "cancel_existing_purchase": False,
+        "checkout": {
+            "user_id": None,
+            "invoice_data": None,
+            "reservation_id": None,
+            "is_invoice": False,
+            "checkout_method": "pos",
+            "data": None,
+            "email": None,
+            "return_url": "http://localhost/return_url"
+        }
+    },
+    "vat": 0
+}
 import json
+serialized = PurchaseSerializer(purchase)
+#serialized = ReservationSerializer(reservation)
 print json.dumps(serialized.data, indent=2, separators=(',', ': '))
