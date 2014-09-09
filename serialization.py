@@ -1,5 +1,5 @@
 from datetime import datetime
-from marshmallow import Serializer, fields
+from marshmallow import Serializer as MarshmallowSerializer, fields
 
 
 class Embedded(fields.Nested):
@@ -10,12 +10,12 @@ class Linked(fields.Nested):
     pass
 
 
-class BaseSerializer(Serializer):
+class Serializer(MarshmallowSerializer):
     @property
     def nested_fields(self):
         return [field for field in self.fields.values() if isinstance(field, fields.Nested)]
 
-@BaseSerializer.data_handler
+@Serializer.data_handler
 def jsonapify(serializer, data, obj):
     def add_links_from_field(field, data):
         if not isinstance(field, Linked):
@@ -89,7 +89,7 @@ def jsonapify(serializer, data, obj):
     }
 
 
-class EventTypeSerializer(BaseSerializer):
+class EventTypeSerializer(Serializer):
     class Meta():
         primary_key = 'event_type_id'
         plural_name = 'event_types'
@@ -97,7 +97,7 @@ class EventTypeSerializer(BaseSerializer):
         additional = ('event_type_id', 'organization_id')
 
 
-class EventSerializer(BaseSerializer):
+class EventSerializer(Serializer):
     class Meta():
         primary_key = 'event_id'
         plural_name = 'events'
@@ -107,7 +107,7 @@ class EventSerializer(BaseSerializer):
     event_type = Linked(EventTypeSerializer)
 
 
-class TicketTypeSerializer(BaseSerializer):
+class TicketTypeSerializer(Serializer):
     class Meta():
         primary_key = 'ticket_type_id'
         plural_name = 'ticket_types'
@@ -117,7 +117,7 @@ class TicketTypeSerializer(BaseSerializer):
     event_type = Linked(EventTypeSerializer)
 
 
-class TicketReservationSerializer(BaseSerializer):
+class TicketReservationSerializer(Serializer):
     class Meta:
         primary_key = 'uuid'
         plural_name = 'ticket_reservations'
@@ -128,7 +128,7 @@ class TicketReservationSerializer(BaseSerializer):
     ticket_type = Linked(TicketTypeSerializer)
 
 
-class ReservationSerializer(BaseSerializer):
+class ReservationSerializer(Serializer):
     class Meta:
         primary_key = 'reservation_id'
         plural_name = 'reservations'
