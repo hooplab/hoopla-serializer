@@ -5,40 +5,44 @@ from marshmallow import Serializer, fields
 class Embedded(fields.Nested):
     pass
 
+
 class Linked(fields.Nested):
     pass
 
+
 class BaseSerializer(Serializer):
-    pass
+    @property
+    def nested_fields(self):
+        return [field for field in self.fields.values() if isinstance(field, fields.Nested)]
 
 @BaseSerializer.data_handler
 def jsonapify(serializer, data, obj):
     def add_links_from_field(field, data):
-        if isinstance(field, Linked):
-            plural_name = field.schema.Meta.plural_name
-            primary_key = field.schema.Meta.primary_key
-            name = field.schema.Meta.name
-            if field.many:
-                links = {plural_name: [o[primary_key] for o in data[plural_name]]}
-            else:
-                links = {plural_name: data[name][primary_key]}
-            if 'links' in data:
-                data['links'].update(links)
-            else:
-                data['links'] = links
+        if not isinstance(field, Linked):
+            return
+
+        plural_name = field.schema.Meta.plural_name
+        primary_key = field.schema.Meta.primary_key
+        name = field.schema.Meta.name
+        if field.many:
+            links = {plural_name: [o[primary_key] for o in data[plural_name]]}
+        else:
+            links = {plural_name: data[name][primary_key]}
+        if 'links' in data:
+            data['links'].update(links)
+        else:
+            data['links'] = links
 
     def add_links_form_schema(schema, data):
-        for field in schema.fields.values():
+        for field in schema.nested_fields:
             add_links_from_field(field, data)
 
-            if isinstance(field, fields.Nested):
-                name = field.name
-                if field.many:
-                    for e in data[name]:
-                        add_links_form_schema(field.schema, e)
-                else:
-                    add_links_form_schema(field.schema, data[name])
-
+            name = field.name
+            if field.many:
+                for e in data[name]:
+                    add_links_form_schema(field.schema, e)
+            else:
+                add_links_form_schema(field.schema, data[name])
 
     def get_linked():
         def get_data(schema, data):
@@ -54,25 +58,23 @@ def jsonapify(serializer, data, obj):
                     a[k] = v
 
         def recur_schema(schema, data, linked):
-            for field in schema.fields.values():
+            for field in schema.nested_fields:
                 recur_field(field, data, linked)
 
         def recur_field(field, data, linked):
             name = field.name
-            if isinstance(field, fields.Nested):
-                if field.many:
-                    for schema_data in data[name]:
-                        recur_schema(field.schema, schema_data, linked)
-                        if isinstance(field, Linked):
-                            update_map(linked, get_data(field.schema, schema_data))
-                else:
-                    recur_schema(field.schema, data[name], linked)
+            if field.many:
+                for schema_data in data[name]:
+                    recur_schema(field.schema, schema_data, linked)
                     if isinstance(field, Linked):
-                        update_map(linked, get_data(field.schema, data[name]))
-
+                        update_map(linked, get_data(field.schema, schema_data))
+            else:
+                recur_schema(field.schema, data[name], linked)
                 if isinstance(field, Linked):
-                    del data[name]
+                    update_map(linked, get_data(field.schema, data[name]))
 
+            if isinstance(field, Linked):
+                del data[name]
 
         linked = dict()
         recur_schema(serializer, data, linked)
@@ -87,7 +89,7 @@ def jsonapify(serializer, data, obj):
     }
 
 
-class EventTypeSerializer(Serializer):
+class EventTypeSerializer(BaseSerializer):
     class Meta():
         primary_key = 'event_type_id'
         plural_name = 'event_types'
@@ -95,17 +97,17 @@ class EventTypeSerializer(Serializer):
         additional = ('event_type_id', 'organization_id')
 
 
-class EventSerializer(Serializer):
+class EventSerializer(BaseSerializer):
     class Meta():
         primary_key = 'event_id'
         plural_name = 'events'
         name = 'event'
-        additional = ('event_id','name')
+        additional = ('event_id', 'name')
 
     event_type = Linked(EventTypeSerializer)
 
 
-class TicketTypeSerializer(Serializer):
+class TicketTypeSerializer(BaseSerializer):
     class Meta():
         primary_key = 'ticket_type_id'
         plural_name = 'ticket_types'
@@ -115,7 +117,7 @@ class TicketTypeSerializer(Serializer):
     event_type = Linked(EventTypeSerializer)
 
 
-class TicketReservationSerializer(Serializer):
+class TicketReservationSerializer(BaseSerializer):
     class Meta:
         primary_key = 'uuid'
         plural_name = 'ticket_reservations'
