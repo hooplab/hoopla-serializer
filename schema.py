@@ -84,6 +84,12 @@ def _add_links_from_schema(schema, data):
 def _get_data(schema, data):
     key = schema.opts.primary_key
     name = schema.opts.plural_name
+
+    # If we want 'id' instead of '<type>_id'
+    # data['id'] = data[key]
+    # del data[key]
+    # return {name: {data['id']: data}}
+
     return {name: {data[key]: data}}
 
 
