@@ -24,7 +24,7 @@ class NameSpacedSchema(Schema):
 
 class BaseSchema(NameSpacedSchema):
     def _postprocess(self, data, obj):
-        def add_links():
+        def add_links_in_nested_objects():
             _add_links_from_schema(self, data)
 
         def get_linked():
@@ -34,10 +34,11 @@ class BaseSchema(NameSpacedSchema):
                 linked[key] = val.values()
             return linked
 
-        add_links()
+        add_links_in_nested_objects()
+
         return {
             self.opts.plural_name: data,
-            'linked': get_linked()
+            'linked': get_linked(),
         }
 
 
@@ -47,18 +48,22 @@ def _add_links_from_field(field, data):
 
     plural_name = field.schema.opts.plural_name
     primary_key = field.schema.opts.primary_key
-    name = field.schema.opts.name
+    name = field.name
 
     if field.many:
         links = {plural_name: [o[primary_key] for o in data[plural_name]]}
     else:
         if not data[name]:
-            links = {name: field.parent.obj[primary_key]}
+            if field.parent.many:
+                # parent obj is a list, must find this fields parent
+                field_key = field.parent.opts.primary_key
+                parent_obj = next(parent_obj for parent_obj in field.parent.obj if parent_obj[field_key] == data[field_key])
+            else:
+                parent_obj = field.parent.obj
+
+            links = {name: parent_obj[primary_key]}
         else:
             links = {name: data[name][primary_key]}
-
-        if primary_key in data:
-            del data[primary_key]
 
     if links:
         if 'links' in data:

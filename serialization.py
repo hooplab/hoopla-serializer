@@ -24,7 +24,7 @@ class TicketTypeSerializer(NameSpacedSchema):
         primary_key = 'ticket_type_id'
         plural_name = 'ticket_types'
         name = 'ticket_type'
-        additional = ("vat_factor", "name", "price", "ticket_type_id", "event_type_id", "identifier", "data")
+        additional = ("vat_factor", "name", "price", "ticket_type_id", "identifier", "data")
 
     event_type = Linked(EventTypeSerializer)
 
@@ -32,9 +32,9 @@ class TicketTypeSerializer(NameSpacedSchema):
 class TicketReservationSerializer(NameSpacedSchema):
     class Meta:
         primary_key = 'uuid'
-        plural_name = 'ticket_reservations'
-        name = 'ticket_reservation'
-        additional = ('price', 'fee', 'vat', 'fee_vat', 'uuid', 'data', 'ticket_type_id')
+        plural_name = 'tickets'
+        name = 'ticket'
+        additional = ('price', 'fee', 'vat', 'fee_vat', 'uuid', 'data',)
 
     events = Linked(EventSerializer, many=True)
     ticket_type = Linked(TicketTypeSerializer)
@@ -50,7 +50,6 @@ class ReservationSerializer(BaseSchema):
     last_touched = fields.DateTime(format='%Y-%m-%dT%H:%M:%S')
     created = fields.DateTime(format='%Y-%m-%dT%H:%M:%S')
     ticket_reservations = fields.Nested(TicketReservationSerializer, attribute='tickets', many=True)
-
 
 
 class TicketSerializer(NameSpacedSchema):
@@ -97,6 +96,6 @@ class EventTypeSerializer2(BaseSchema):
 from data import purchase, reservation, event_type
 import json
 serialized = PurchaseSerializer(purchase)
-#serialized = ReservationSerializer(reservation)
-#serialized = EventTypeSerializer2(event_type)
+serialized = ReservationSerializer(reservation)
+serialized = EventTypeSerializer2(event_type)
 print json.dumps(serialized.data, indent=2, separators=(',', ': '))
