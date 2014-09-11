@@ -27,6 +27,11 @@ class BaseSchema(NameSpacedSchema):
         def add_links_in_nested_objects():
             _add_links_from_schema(self, data)
 
+        def get_links():
+            links = dict()
+            _add_root_links_from_schema(self, self.opts.name+"", links)
+            return links
+
         def get_linked():
             linked = dict()
             _recur_schema(self, data, linked)
@@ -39,7 +44,17 @@ class BaseSchema(NameSpacedSchema):
         return {
             self.opts.plural_name: data,
             'linked': get_linked(),
+            'links': get_links()
         }
+
+
+def _add_root_links_from_schema(schema, path, links):
+    for field in schema.nested_fields:
+        links[path + "." + field.name] = {
+            "type": field.schema.opts.plural_name
+        }
+
+        _add_root_links_from_schema(field.schema, path + "." + field.name, links)
 
 
 def _add_links_from_field(field, data):
