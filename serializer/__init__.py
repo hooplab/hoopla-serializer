@@ -1,1 +1,1 @@
-from serializer.schema import (Embedded, BaseSchema, Linked, fields)
+from serializer.schema import (Embedded, Schema, Linked, fields)

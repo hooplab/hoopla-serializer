@@ -1,4 +1,4 @@
-from marshmallow import Schema, SchemaOpts, fields
+from marshmallow import Schema as MSchema, SchemaOpts, fields
 
 
 class Linked(fields.Nested):
@@ -19,7 +19,7 @@ class NamespaceOpts(SchemaOpts):
         self.plural_name = getattr(meta, 'plural_name', self.name)
 
 
-class BaseSchema(Schema):
+class Schema(MSchema):
     OPTIONS_CLASS = NamespaceOpts
 
     @property
