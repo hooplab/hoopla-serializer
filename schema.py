@@ -6,6 +6,11 @@ class Linked(fields.Nested):
         super(Linked, self).__init__(nested, default=default, **kwargs)
 
 
+class Embedded(fields.Nested):
+    def __init__(self, nested, default=None, **kwargs):
+        super(Embedded, self).__init__(nested, default=default, **kwargs)
+
+
 class NamespaceOpts(SchemaOpts):
     def __init__(self, meta):
         SchemaOpts.__init__(self, meta)
@@ -14,15 +19,13 @@ class NamespaceOpts(SchemaOpts):
         self.plural_name = getattr(meta, 'plural_name', self.name)
 
 
-class NameSpacedSchema(Schema):
+class BaseSchema(Schema):
     OPTIONS_CLASS = NamespaceOpts
 
     @property
     def nested_fields(self):
         return [field for field in self.fields.values() if isinstance(field, fields.Nested)]
 
-
-class BaseSchema(NameSpacedSchema):
     def _postprocess(self, data, obj):
         def add_links_in_nested_objects():
             _add_links_from_schema(self, data)
@@ -93,6 +96,9 @@ def _add_links_from_schema(schema, data):
 
         name = field.name
 
+        if not data[name]:
+            return
+
         nested_field_data = data[name] if field.many else [data[name]]
         for field_data in nested_field_data:
             if not field_data:
@@ -128,6 +134,9 @@ def _recur_schema(schema, data, linked):
 
 def _recur_field(field, data, linked):
     name = field.name
+
+    if not data[name]:
+        return
 
     nested_field_data = data[name] if field.many else [data[name]]
     for field_data in nested_field_data:
