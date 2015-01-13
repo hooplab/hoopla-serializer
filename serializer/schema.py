@@ -27,84 +27,44 @@ class Schema(MSchema):
         return [field for field in self.fields.values() if isinstance(field, fields.Nested)]
 
     def _postprocess(self, data, obj):
-        def add_links_in_nested_objects():
-            _add_links_from_schema(self, data)
+        def bubble_linked(data, linked):
+            links = {}
+            for field in self.nested_fields:
+                plural_name = field.schema.opts.plural_name
+                primary_key = field.schema.opts.primary_key
 
-        def get_links():
-            links = dict()
-            _add_root_links_from_schema(self, self.opts.name+"", links)
-            return links
+                linked_object = data[field.name][plural_name]
+                linked_object_list = linked_object if field.many else [linked_object]
 
-        def get_linked():
-            linked = dict()
-            _recur_schema(self, data, linked)
-            for key, val in linked.items():
-                linked[key] = val.values()
-            return linked
+                _update_linked(linked, data[field.name]['linked'])
+                del data[field.name]
 
-        add_links_in_nested_objects()
+                if plural_name in linked:
+                    linked[plural_name].extend(linked_object_list)
+                else:
+                    linked[plural_name] = linked_object_list
+
+                if field.many:
+                    links[field.name] = [o[primary_key] for o in linked_object]
+                else:
+                    links[field.name] = linked_object[primary_key]
+
+            if links:
+                data['links'] = links
+            
+
+        linked = {}
+        if not self.many:
+            bubble_linked(data, linked)
+        else:
+            for d in data:
+                bubble_linked(d, linked)
 
         return {
             self.opts.plural_name: data,
-            'linked': get_linked(),
-            'links': get_links()
+            'linked': linked,
+            # 'links': {}
         }
-
-
-def _add_root_links_from_schema(schema, path, links):
-    for field in schema.nested_fields:
-        links[path + "." + field.name] = {
-            "type": field.schema.opts.plural_name
-        }
-
-        _add_root_links_from_schema(field.schema, path + "." + field.name, links)
-
-
-def _add_links_from_field(field, data):
-    if not isinstance(field, Linked):
-        return
-
-    plural_name = field.schema.opts.plural_name
-    primary_key = field.schema.opts.primary_key
-    name = field.name
-
-    if field.many:
-        links = {plural_name: [o[primary_key] for o in data[plural_name]]}
-    else:
-        if not data[name]:
-            if field.parent.many:
-                # parent obj is a list, must find this fields parent
-                field_key = field.parent.opts.primary_key
-                parent_obj = next(parent_obj for parent_obj in field.parent.obj if parent_obj[field_key] == data[field_key])
-            else:
-                parent_obj = field.parent.obj
-
-            links = {name: parent_obj[primary_key]}
-        else:
-            links = {name: data[name][primary_key]}
-
-    if links:
-        if 'links' in data:
-            data['links'].update(links)
-        else:
-            data['links'] = links
-
-
-def _add_links_from_schema(schema, data):
-    for field in schema.nested_fields:
-        _add_links_from_field(field, data)
-
-        name = field.name
-
-        if not data[name]:
-            return
-
-        nested_field_data = data[name] if field.many else [data[name]]
-        for field_data in nested_field_data:
-            if not field_data:
-                continue
-
-            _add_links_from_schema(field.schema, field_data)
 
 
 def _get_data(schema, data):
@@ -125,27 +85,3 @@ def _update_linked(a, b):
             a[k].update(v)
         else:
             a[k] = v
-
-
-def _recur_schema(schema, data, linked):
-    for field in schema.nested_fields:
-        _recur_field(field, data, linked)
-
-
-def _recur_field(field, data, linked):
-    name = field.name
-
-    if not data[name]:
-        return
-
-    nested_field_data = data[name] if field.many else [data[name]]
-    for field_data in nested_field_data:
-        if not field_data:
-            continue
-
-        _recur_schema(field.schema, field_data, linked)
-        if isinstance(field, Linked):
-            _update_linked(linked, _get_data(field.schema, field_data))
-
-    if isinstance(field, Linked):
-        del data[name]
