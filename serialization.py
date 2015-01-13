@@ -1,4 +1,4 @@
-from schema import NameSpacedSchema, BaseSchema, fields, Linked
+from serializer.schema import NameSpacedSchema, BaseSchema, fields, Linked
 
 
 class EventTypeSerializer(NameSpacedSchema):
