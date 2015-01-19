@@ -51,7 +51,18 @@ class Schema(MSchema):
 
             if links:
                 data['links'] = links
-            
+
+        # Bubble links
+        links = {}
+        for field in self.nested_fields:
+            if self.many and len(data) == 0:
+                continue
+            _links = data[0][field.name]['links'] if self.many else data[field.name]['links']
+            for link, type_dict in _links.items():
+                links[link.replace(field.schema.opts.plural_name, self.opts.plural_name+"."+field.name)] = type_dict
+            links[self.opts.plural_name+"."+field.name] = {
+                'type': field.schema.opts.plural_name
+            }
 
         linked = {}
         if not self.many:
@@ -60,10 +71,11 @@ class Schema(MSchema):
             for d in data:
                 bubble_linked(d, linked)
 
+
         return {
             self.opts.plural_name: data,
             'linked': linked,
-            # 'links': {}
+            'links': links
         }
 
 
