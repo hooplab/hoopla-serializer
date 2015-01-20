@@ -6,8 +6,7 @@ from serializer.schema import Linked, Schema
 class UserBestFriendSchema(Schema):
     class Meta:
         primary_key = 'user_id'
-        name = 'user'
-        plural_name = 'users'
+        type = 'users'
 
         additional = ('user_id', 'name')
 
@@ -108,8 +107,7 @@ class CyclicSchemaTest(unittest.TestCase):
         class ParentSchema(Schema):
             class Meta:
                 primary_key = 'parent_id'
-                plural_name = 'parents'
-                name = 'parent'
+                type = 'parents'
 
                 additional = ('parent_id', 'name')
 
@@ -119,8 +117,7 @@ class CyclicSchemaTest(unittest.TestCase):
         class ChildSchema(Schema):
             class Meta:
                 primary_key = 'child_id'
-                plural_name = 'children'
-                name = 'child'
+                type = 'children'
 
                 additional = ('child_id', 'name')
 

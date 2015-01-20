@@ -6,8 +6,7 @@ from serializer.schema import Linked, Schema
 class UserSchema(Schema):
     class Meta:
         primary_key = 'user_id'
-        name = 'user'
-        plural_name = 'users'
+        type = 'users'
 
         additional = ('user_id', 'name')
 
@@ -15,8 +14,7 @@ class UserSchema(Schema):
 class OrganizationSchema(Schema):
     class Meta:
         primary_key = 'organization_id'
-        name = 'organization'
-        plural_name = 'organizations'
+        type = 'organizations'
 
         additional = ('organization_id', 'name')
     owner = Linked("UserSchema")
@@ -25,8 +23,7 @@ class OrganizationSchema(Schema):
 class AdminSchema(Schema):
     class Meta:
         primary_key = 'admin_id'
-        name = 'admin'
-        plural_name = 'admins'
+        type = 'admins'
 
         additional = ('admin_id', 'name')
 

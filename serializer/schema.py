@@ -21,9 +21,8 @@ class Embedded(fields.Nested):
 class NamespaceOpts(SchemaOpts):
     def __init__(self, meta):
         SchemaOpts.__init__(self, meta)
-        self.name = getattr(meta, 'name')
         self.primary_key = getattr(meta, 'primary_key')
-        self.plural_name = getattr(meta, 'plural_name', self.name)
+        self.type = getattr(meta, 'type')
 
 
 class Schema(MSchema):
@@ -44,7 +43,7 @@ class Schema(MSchema):
             if 'visited' not in self.context:
                 self.context['visited'] = dict()
             key = obj[self.opts.primary_key]
-            type = self.opts.plural_name
+            type = self.opts.type
             if type not in self.context['visited']:
                 self.context['visited'][type] = set()
             if key in self.context['visited'][type]:
@@ -60,8 +59,8 @@ class Schema(MSchema):
     def _extract_links(self, data):
         links = {}
         for field in self.nested_fields:
-            links[self.opts.plural_name + "." + field.name] = {
-                'type': field.schema.opts.plural_name
+            links[self.opts.type + "." + field.name] = {
+                'type': field.schema.opts.type
             }
             if field.many:
                 _links = next(ifilter(lambda x: not isinstance(x, Link), data[field.name]), {'links': {}})['links']
@@ -82,7 +81,7 @@ class Schema(MSchema):
                 else:
                     linked[key].extend(val)
 
-        def bubble_linked(link, plural_name, primary_key, field):
+        def bubble_linked(link, type_, primary_key, field):
             if isinstance(link, Link):
                 if 'links' not in data:
                     data['links'] = {}
@@ -94,15 +93,15 @@ class Schema(MSchema):
                 else:
                     data['links'][field.name] = link.id
                 return
-            linked_object = link[plural_name]
+            linked_object = link[type_]
             bubbled_linked = link['linked']
 
             add_to_linked(bubbled_linked)
 
-            if plural_name in linked:
-                linked[plural_name].append(linked_object)
+            if type_ in linked:
+                linked[type_].append(linked_object)
             else:
-                linked[plural_name] = [linked_object]
+                linked[type_] = [linked_object]
             if 'links' not in data:
                 data['links'] = {}
             if field.many:
@@ -116,12 +115,12 @@ class Schema(MSchema):
         for field in self.nested_fields:
             if isinstance(field, Linked):
                 primary_key = field.schema.opts.primary_key
-                plural_name = field.schema.opts.plural_name
+                type_ = field.schema.opts.type
                 if field.many:
                     for linked_object in data[field.name]:
-                        bubble_linked(linked_object, plural_name, primary_key, field)
+                        bubble_linked(linked_object, type_, primary_key, field)
                 else:
-                    bubble_linked(data[field.name], plural_name, primary_key, field)
+                    bubble_linked(data[field.name], type_, primary_key, field)
                 del data[field.name]
 
             elif isinstance(field, Embedded):
@@ -134,7 +133,7 @@ class Schema(MSchema):
         linked = self._extract_linked(data)
 
         return {
-            self.opts.plural_name: data,
+            self.opts.type: data,
             'linked': linked,
             'links': links
         }
