@@ -100,12 +100,6 @@ class NestedSchemaTest(unittest.TestCase):
             'links': {
                 'users.best_friend': {
                     'type': 'users'
-                },
-                'users.best_friend.best_friend': {
-                    'type': 'users'
-                },
-                'users.best_friend.best_friend.best_friend': {
-                    'type': 'users'
                 }
             }
         })
@@ -188,14 +182,11 @@ class NestedSchemaTest(unittest.TestCase):
                 'parents.favorite_child': {
                     'type': 'children'
                 },
-                'parents.children.parent': {
+                'children.parent': {
                     'type': 'parents'
                 },
                 'parents.children': {
                     'type': 'children'
-                },
-                'parents.favorite_child.parent': {
-                    'type': 'parents'
                 }
             }
         })

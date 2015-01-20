@@ -69,8 +69,7 @@ class Schema(MSchema):
                 if isinstance(data[field.name], Link):
                     continue
                 _links = data[field.name]['links']
-            for link, type_dict in _links.items():
-                links[link.replace(field.schema.opts.plural_name, self.opts.plural_name + "." + field.name)] = type_dict
+            links.update(_links)
         return links
 
     def _extract_linked(self, data):

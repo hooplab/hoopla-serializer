@@ -160,7 +160,7 @@ class NestedSchemaTest(unittest.TestCase):
                 'admins.orgs': {
                     'type': 'organizations'
                 },
-                'admins.orgs.owner': {
+                'organizations.owner': {
                     'type': 'users'
                 }
             }
