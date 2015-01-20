@@ -43,22 +43,22 @@ class Schema(MSchema):
             if 'visited' not in self.context:
                 self.context['visited'] = dict()
             key = obj[self.opts.primary_key]
-            type = self.opts.type
-            if type not in self.context['visited']:
-                self.context['visited'][type] = set()
-            if key in self.context['visited'][type]:
+            type_ = self.opts.type
+            if type_ not in self.context['visited']:
+                self.context['visited'][type_] = set()
+            if key in self.context['visited'][type_]:
                 return MarshalResult(Link(key), [])
-            self.context['visited'][type].add(key)
+            self.context['visited'][type_].add(key)
 
             return super(Schema, self).dump(obj, False, update_fields, **kwargs)
 
     @property
-    def nested_fields(self):
-        return [field for field in self.fields.values() if isinstance(field, fields.Nested)]
+    def linked_fields(self):
+        return [field for field in self.fields.values() if isinstance(field, Linked)]
 
-    def _extract_links(self, data):
+    def _extract_root_links(self, data):
         links = {}
-        for field in self.nested_fields:
+        for field in self.linked_fields:
             links[self.opts.type + "." + field.name] = {
                 'type': field.schema.opts.type
             }
@@ -71,6 +71,29 @@ class Schema(MSchema):
             links.update(_links)
         return links
 
+    def _add_links(self, data):
+        links = {}
+
+        def add_to_links(id_, field_name, many):
+            if many:
+                if field_name not in links:
+                    links[field_name] = [id_]
+                else:
+                    links[field_name].append(id_)
+            else:
+                links[field_name] = id_
+
+        for field in self.linked_fields:
+            primary_key = field.schema.opts.primary_key
+            type_ = field.schema.opts.type
+            link_list = data[field.name] if field.many else [data[field.name]]
+            for link in link_list:
+                id_ = link.id if isinstance(link, Link) else link[type_][primary_key]
+                add_to_links(id_, field.name, field.many)
+
+        if links:
+            data['links'] = links
+
     def _extract_linked(self, data):
         linked = {}
 
@@ -81,55 +104,25 @@ class Schema(MSchema):
                 else:
                     linked[key].extend(val)
 
-        def bubble_linked(link, type_, primary_key, field):
-            if isinstance(link, Link):
-                if 'links' not in data:
-                    data['links'] = {}
-                if field.many:
-                    if field.name not in data['links']:
-                        data['links'][field.name] = [link.id]
-                    else:
-                        data['links'][field.name].append(link.id)
-                else:
-                    data['links'][field.name] = link.id
-                return
-            linked_object = link[type_]
-            bubbled_linked = link['linked']
+        for field in self.linked_fields:
+            type_ = field.schema.opts.type
 
-            add_to_linked(bubbled_linked)
+            linked_list = data[field.name] if field.many else [data[field.name]]
 
-            if type_ in linked:
-                linked[type_].append(linked_object)
-            else:
-                linked[type_] = [linked_object]
-            if 'links' not in data:
-                data['links'] = {}
-            if field.many:
-                if field.name not in data['links']:
-                    data['links'][field.name] = [linked_object[primary_key]]
-                else:
-                    data['links'][field.name].append(linked_object[primary_key])
-            else:
-                data['links'][field.name] = linked_object[primary_key]
+            for linked_ in linked_list:
+                if isinstance(linked_, Link):
+                    continue
+                add_to_linked(linked_['linked'])
+                add_to_linked({type_: [linked_[type_]]})
 
-        for field in self.nested_fields:
-            if isinstance(field, Linked):
-                primary_key = field.schema.opts.primary_key
-                type_ = field.schema.opts.type
-                if field.many:
-                    for linked_object in data[field.name]:
-                        bubble_linked(linked_object, type_, primary_key, field)
-                else:
-                    bubble_linked(data[field.name], type_, primary_key, field)
-                del data[field.name]
+            del data[field.name]
 
-            elif isinstance(field, Embedded):
-                raise NotImplementedError
         return linked
 
     def _postprocess(self, data, obj):
         # order is important here
-        links = self._extract_links(data)
+        self._add_links(data)
+        links = self._extract_root_links(data)
         linked = self._extract_linked(data)
 
         return {
