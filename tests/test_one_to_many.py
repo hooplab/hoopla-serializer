@@ -1,6 +1,6 @@
 import unittest
 
-from serializer.schema import Linked, fields, Schema
+from serializer.schema import Linked, Schema
 
 
 class UserSchema(Schema):
@@ -78,7 +78,7 @@ admin_A = {
 
 class NestedSchemaTest(unittest.TestCase):
     def test_simple_document(self):
-        serialized_user = UserSchema(user_E).data
+        serialized_user = UserSchema().dump(user_E).data
 
         self.assertDictEqual(serialized_user, {
             'users': user_E,
@@ -87,7 +87,7 @@ class NestedSchemaTest(unittest.TestCase):
         })
 
     def test_nested_document(self):
-        serialized_organization = OrganizationSchema(organization_B).data
+        serialized_organization = OrganizationSchema().dump(organization_B).data
 
         self.assertDictEqual(serialized_organization, {
             'organizations': {
@@ -146,10 +146,6 @@ class NestedSchemaTest(unittest.TestCase):
                     }
                 ],
                 'users': [
-                    {
-                        'user_id': 1,
-                        'name': u'Pelle'
-                    },
                     {
                         'user_id': 1,
                         'name': u'Pelle'
