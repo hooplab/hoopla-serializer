@@ -8,15 +8,17 @@ class Link:
         self.id = id
 
 
-class Linked(fields.Nested):
+class Nested(fields.Nested):
     def __init__(self, nested, default=None, **kwargs):
-        super(Linked, self).__init__(nested, default=default, **kwargs)
+        super(Nested, self).__init__(nested, default=default, **kwargs)
 
 
-class Embedded(fields.Nested):
-    def __init__(self, nested, default=None, **kwargs):
-        super(Embedded, self).__init__(nested, default=default, **kwargs)
+class Linked(Nested):
+    pass
 
+
+class Embedded(Nested):
+    pass
 
 class NamespaceOpts(SchemaOpts):
     def __init__(self, meta):
@@ -53,22 +55,34 @@ class Schema(MSchema):
             return super(Schema, self).dump(obj, False, update_fields, **kwargs)
 
     @property
+    def nested_fields(self):
+        return [field for field in self.fields.values() if isinstance(field, Nested)]
+
+    @property
     def linked_fields(self):
         return [field for field in self.fields.values() if isinstance(field, Linked)]
 
+    @property
+    def embedded_fields(self):
+        return [field for field in self.fields.values() if isinstance(field, Embedded)]
+
     def _extract_root_links(self, data):
         links = {}
-        for field in self.linked_fields:
+        for field in self.nested_fields:
             links[self.opts.type + "." + field.name] = {
                 'type': field.schema.opts.type
             }
             if field.many:
-                _links = next(ifilter(lambda x: not isinstance(x, Link), data[field.name]), {'links': {}})['links']
+                links_ = next(ifilter(lambda x: not isinstance(x, Link), data[field.name]), {'links': {}})['links']
             else:
                 if isinstance(data[field.name], Link):
                     continue
-                _links = data[field.name]['links']
-            links.update(_links)
+                links_ = data[field.name]['links']
+            if isinstance(field, Embedded):
+                for link, type_dict in links_.items():
+                    links[link.replace(field.schema.opts.type, self.opts.type + "." + field.name)] = type_dict
+            else:
+                links.update(links_)
         return links
 
     def _add_links(self, data):
@@ -104,17 +118,26 @@ class Schema(MSchema):
                 else:
                     linked[key].extend(val)
 
-        for field in self.linked_fields:
+        for field in self.nested_fields:
             type_ = field.schema.opts.type
 
             linked_list = data[field.name] if field.many else [data[field.name]]
-
             for linked_ in linked_list:
                 if isinstance(linked_, Link):
                     continue
                 add_to_linked(linked_['linked'])
-                add_to_linked({type_: [linked_[type_]]})
+                if isinstance(field, Linked):
+                    add_to_linked({type_: [linked_[type_]]})
 
+        for field in self.embedded_fields:
+            type_ = field.schema.opts.type
+            if isinstance(field, Embedded):
+                if field.many:
+                    data[field.name] = [linked_[type_] for linked_ in data[field.name]]
+                else:
+                    data[field.name] = data[field.name][type_]
+
+        for field in self.linked_fields:
             del data[field.name]
 
         return linked
