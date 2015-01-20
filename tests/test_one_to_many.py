@@ -91,13 +91,11 @@ class NestedSchemaTest(unittest.TestCase):
                 'organization_id': organization_B['organization_id'],
                 'name': organization_B['name'],
                 'links': {
-                    'owner': user_E['user_id']
+                    'owner': organization_B['owner']['user_id']
                 }
             },
             'linked': {
-                'users': [
-                    user_E
-                ]
+                'users': [organization_B['owner']]
             },
             'links': {
                 'organizations.owner': {
@@ -106,52 +104,28 @@ class NestedSchemaTest(unittest.TestCase):
             }
         })
 
-
     def test_deeply_nested_documents(self):
         serialized = AdminSchema(admin_A).data
 
         self.assertDictEqual(serialized, {
             'admins': {
-                'name': u'Sjefen',
+                'name': admin_A['name'],
+                'admin_id': admin_A['admin_id'],
                 'links': {
-                    'orgs': [1, 2, 3]
-                },
-                'admin_id': 1
+                    'orgs': [org['organization_id'] for org in admin_A['orgs']]
+                }
             },
             'linked': {
                 'organizations': [
                     {
-                        'organization_id': 1,
-                        'name': u'Brukbar',
+                        'organization_id': org['organization_id'],
+                        'name': org['name'],
                         'links': {
-                            'owner': 1
+                            'owner': org['owner']['user_id']
                         }
-                    },
-                    {
-                        'organization_id': 2,
-                        'name': u'Naboen',
-                        'links': {
-                            'owner': 1
-                        }
-                    },
-                    {
-                        'organization_id': 3,
-                        'name': u'To rom',
-                        'links': {
-                            'owner': 2
-                        }
-                    }
+                    } for org in admin_A['orgs']
                 ],
-                'users': [
-                    {
-                        'user_id': 1,
-                        'name': u'Pelle'
-                    },
-                    {
-                        'user_id': 2,
-                        'name': u'Hans'
-                    }
-                ]
+                'users': [user_E, user_F]
             },
             'links': {
                 'admins.orgs': {

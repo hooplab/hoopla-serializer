@@ -29,11 +29,11 @@ class CyclicSchemaTest(unittest.TestCase):
 
         self.assertDictEqual(serialized_user, {
             'users': {
+                'user_id': forever_alone['user_id'],
+                'name': forever_alone['name'],
                 'links': {
                     'best_friend': forever_alone['user_id']
-                },
-                'user_id': forever_alone['user_id'],
-                'name': forever_alone['name']
+                }
             },
             'links': {
                 'users.best_friend': {
@@ -147,29 +147,22 @@ class CyclicSchemaTest(unittest.TestCase):
 
         self.assertDictEqual(serialized_parent, {
             'parents': {
-                'parent_id': 1,
+                'parent_id': parent['parent_id'],
+                'name': parent['name'],
                 'links': {
-                    'favorite_child': 1,
-                    'children': [1, 2]
-                },
-                'name': u'Parent'
+                    'favorite_child': parent['favorite_child']['child_id'],
+                    'children': [child['child_id'] for child in parent['children']]
+                }
             },
             'linked': {
                 'children': [
                     {
-                        'child_id': 1,
+                        'child_id': child['child_id'],
+                        'name': child['name'],
                         'links': {
-                            'parent': 1
-                        },
-                        'name': u'Kari'
-                    },
-                    {
-                        'child_id': 2,
-                        'links': {
-                            'parent': 1
-                        },
-                        'name': u'Pelle'
-                    }
+                            'parent': parent['parent_id']
+                        }
+                    } for child in parent['children']
                 ]
             },
             'links': {
