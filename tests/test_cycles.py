@@ -14,7 +14,7 @@ class UserBestFriendSchema(Schema):
     best_friend = Linked("self")
 
 
-class NestedSchemaTest(unittest.TestCase):
+class CyclicSchemaTest(unittest.TestCase):
     def test_cyclic_self_reference(self):
         forever_alone = {
             "user_id": 1,
@@ -104,7 +104,6 @@ class NestedSchemaTest(unittest.TestCase):
             }
         })
 
-
     def test_deep_nested_cyclic_reference(self):
         class ParentSchema(Schema):
             class Meta:
@@ -148,8 +147,6 @@ class NestedSchemaTest(unittest.TestCase):
         parent['favorite_child'] = child_1
 
         serialized_parent = ParentSchema(parent).data
-
-        print "___\nuser", serialized_parent
 
         self.assertDictEqual(serialized_parent, {
             'parents': {
