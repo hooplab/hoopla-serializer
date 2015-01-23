@@ -44,7 +44,7 @@ class Schema(MSchema):
         else:
             if 'visited' not in self.context:
                 self.context['visited'] = dict()
-            key = obj[self.opts.primary_key]
+            key = self.fields[self.opts.primary_key].get_value(self.opts.primary_key, obj)
             type_ = self.opts.type
             if type_ not in self.context['visited']:
                 self.context['visited'][type_] = set()
