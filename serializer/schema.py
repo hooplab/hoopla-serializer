@@ -1,6 +1,6 @@
 from itertools import ifilter
 
-from marshmallow import Schema as MSchema, SchemaOpts, fields, MarshalResult
+from marshmallow import Schema as MSchema, SchemaOpts, fields, MarshalResult, utils
 
 
 class Link:
@@ -153,3 +153,20 @@ class Schema(MSchema):
             'linked': linked,
             'links': links
         }
+
+
+def _recur_find(keys, obj, default=None):
+    first_key = keys[0]
+    next_obj = utils.get_value(first_key, obj, default)
+    if len(keys) == 1:
+        return next_obj
+    if isinstance(next_obj, list):
+        return [_recur_find(keys[1:], o, default) for o in next_obj]
+    else:
+        return _recur_find(keys[1:], next_obj, default)
+
+@Schema.accessor
+def find_many_to_one(schema, key, obj, default=None):
+    if "." in key:
+        return _recur_find(key.split('.'), obj, default)
+    return schema.fields[key].get_value(key, obj, default)
