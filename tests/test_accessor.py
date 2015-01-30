@@ -54,5 +54,3 @@ class AccessorTest(unittest.TestCase):
                 }
             }
         })
-
-        print UserOrganizationSchema().dump(user).data
