@@ -35,7 +35,7 @@ class AccessorTest(unittest.TestCase):
             ]
         }
 
-        serialized_user = UserOrganizationSchema().dump(user).data
+        serialized_user = UserOrganizationSchema().serialize(user)
 
         self.assertDictEqual(serialized_user, {
             "users": {

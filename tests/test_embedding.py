@@ -62,7 +62,7 @@ class ReservationSchema(Schema):
 class EmbeddedSchemaTest(unittest.TestCase):
     def test_embedding(self):
 
-        serialized_reservation = ReservationSchema().dump(reservation).data
+        serialized_reservation = ReservationSchema().serialize(reservation)
 
         self.assertDictEqual(serialized_reservation, {
             'reservations': {

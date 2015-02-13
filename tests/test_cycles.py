@@ -25,7 +25,7 @@ class CyclicSchemaTest(unittest.TestCase):
             user <-> user
         """
 
-        serialized_user = UserBestFriendSchema().dump(forever_alone).data
+        serialized_user = UserBestFriendSchema().serialize(forever_alone)
 
         self.assertDictEqual(serialized_user, {
             'users': {
@@ -67,7 +67,7 @@ class CyclicSchemaTest(unittest.TestCase):
             user_1 -> user_2 -> user_3 -> user_1
         """
 
-        serialized_user = UserBestFriendSchema().dump(user_1).data
+        serialized_user = UserBestFriendSchema().serialize(user_1)
 
         self.assertDictEqual(serialized_user, {
             'users': {

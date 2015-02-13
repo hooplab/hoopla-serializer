@@ -75,7 +75,7 @@ admin_A = {
 
 class NestedSchemaTest(unittest.TestCase):
     def test_simple_document(self):
-        serialized_user = UserSchema().dump(user_E).data
+        serialized_user = UserSchema().serialize(user_E)
 
         self.assertDictEqual(serialized_user, {
             'users': user_E,
@@ -84,7 +84,7 @@ class NestedSchemaTest(unittest.TestCase):
         })
 
     def test_nested_document(self):
-        serialized_organization = OrganizationSchema().dump(organization_B).data
+        serialized_organization = OrganizationSchema().serialize(organization_B)
 
         self.assertDictEqual(serialized_organization, {
             'organizations': {
