@@ -30,6 +30,30 @@ class NamespaceOpts(SchemaOpts):
 class Schema(MSchema):
     OPTIONS_CLASS = NamespaceOpts
 
+    def serialize(self, obj, many=False, update_fields=True, **kwargs):
+
+        data = self.dump(obj, many, update_fields, **kwargs).data
+
+        if many:
+            objects = []
+            linked = {}
+            links = data[0]['links']
+            for obj in data:
+                for field_type in obj['linked'].keys():
+                    if field_type in obj['linked']:
+                        if field_type in linked:
+                            linked[field_type].extend(obj['linked'][field_type])
+                        else:
+                            linked[field_type] = obj['linked'][field_type]
+                        del obj['linked'][field_type]
+                objects.append(obj[self.opts.type])
+            return {
+                self.opts.type: objects,
+                'linked': linked,
+                'links': links
+            }
+        return data
+
     def dump(self, obj, many=False, update_fields=True, **kwargs):
         many = self.many if many is None else bool(many)
         if many:
@@ -40,6 +64,7 @@ class Schema(MSchema):
                 result, error = self.dump(o, False, update_fields, **kwargs)
                 results.append(result)
                 errors.append(error)
+
             return MarshalResult(results, errors)
         else:
             if 'visited' not in self.context:
@@ -88,22 +113,16 @@ class Schema(MSchema):
     def _add_links(self, data):
         links = {}
 
-        def add_to_links(id_, field_name, many):
-            if many:
-                if field_name not in links:
-                    links[field_name] = [id_]
-                else:
-                    links[field_name].append(id_)
-            else:
-                links[field_name] = id_
+        def get_id(link, type_, primary_key):
+            return link.id if isinstance(link, Link) else link[type_][primary_key]
 
         for field in self.linked_fields:
             primary_key = field.schema.opts.primary_key
             type_ = field.schema.opts.type
-            link_list = data[field.name] if field.many else [data[field.name]]
-            for link in link_list:
-                id_ = link.id if isinstance(link, Link) else link[type_][primary_key]
-                add_to_links(id_, field.name, field.many)
+            if field.many:
+                links[field.name] = [get_id(link, type_, primary_key) for link in data[field.name]]
+            else:
+                links[field.name] = get_id(data[field.name], type_, primary_key)
 
         if links:
             data['links'] = links
@@ -155,7 +174,7 @@ class Schema(MSchema):
         }
 
 
-def _recur_find(keys, obj, default=None):
+def _recur_find(keys, obj, default):
     first_key = keys[0]
     next_obj = utils.get_value(first_key, obj, default)
     if len(keys) == 1:
@@ -167,6 +186,4 @@ def _recur_find(keys, obj, default=None):
 
 @Schema.accessor
 def find_many_to_one(schema, key, obj, default=None):
-    if "." in key:
-        return _recur_find(key.split('.'), obj, default)
-    return schema.fields[key].get_value(key, obj, default)
+    return _recur_find(key.split('.'), obj, default)
