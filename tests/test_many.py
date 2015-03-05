@@ -8,7 +8,7 @@ class UserManySchema(Schema):
         primary_key = 'user_id'
         type = "users"
 
-        additional = ('user_id',)
+        additional = ()
 
 
 class OrganizationManySchema(Schema):
@@ -16,7 +16,8 @@ class OrganizationManySchema(Schema):
         primary_key = 'organization_id'
         type = "organizations"
 
-        additional = ('organization_id',)
+        additional = ()
+
     owners = Linked(UserManySchema, many=True, attribute="users")
 
 class EventSchema(Schema):
@@ -24,7 +25,7 @@ class EventSchema(Schema):
         primary_key = 'event_id'
         type = 'events'
 
-        additional = ('event_id', 'name')
+        additional = ('name',)
 
     organization = Linked(OrganizationManySchema)
 
@@ -66,14 +67,14 @@ class ManyTest(unittest.TestCase):
         self.assertDictEqual(serialized, {
             "events": [
                 {
-                    "event_id": 1,
+                    "id": 1,
                     "name": "Snoop Dogg",
                     "links": {
                         "organization": 1
                     }
                 },
                 {
-                    "event_id": 2,
+                    "id": 2,
                     "name": "Justin Bieber",
                     "links": {
                         "organization": 2
@@ -91,13 +92,13 @@ class ManyTest(unittest.TestCase):
             "linked": {
                 "organizations": [
                     {
-                        "organization_id": 1,
+                        "id": 1,
                         "links": {
                             "owners": []
                         }
                     },
                     {
-                        "organization_id": 2,
+                        "id": 2,
                         "links": {
                             "owners": [
                                 1,
@@ -106,7 +107,7 @@ class ManyTest(unittest.TestCase):
                         }
                     }
                 ],
-                "users": events[1]['organization']['users']
+                "users": [{'id': user['user_id']} for user in events[1]['organization']['users']]
             }
         })
 

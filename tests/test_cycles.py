@@ -8,7 +8,7 @@ class UserBestFriendSchema(Schema):
         primary_key = 'user_id'
         type = 'users'
 
-        additional = ('user_id', 'name')
+        additional = ('name',)
 
     best_friend = Linked("self")
 
@@ -29,7 +29,7 @@ class CyclicSchemaTest(unittest.TestCase):
 
         self.assertDictEqual(serialized_user, {
             'users': {
-                'user_id': forever_alone['user_id'],
+                'id': forever_alone['user_id'],
                 'name': forever_alone['name'],
                 'links': {
                     'best_friend': forever_alone['user_id']
@@ -72,7 +72,7 @@ class CyclicSchemaTest(unittest.TestCase):
         self.assertDictEqual(serialized_user, {
             'users': {
                 'name': user_1['name'],
-                'user_id': user_1['user_id'],
+                'id': user_1['user_id'],
                 'links': {
                     'best_friend': user_2['user_id']
                 }
@@ -81,14 +81,14 @@ class CyclicSchemaTest(unittest.TestCase):
                 'users': [
                     {
                         'name': user_3['name'],
-                        'user_id': user_3['user_id'],
+                        'id': user_3['user_id'],
                         'links': {
                             'best_friend': user_1['user_id']
                         }
                     },
                     {
                         'name': user_2['name'],
-                        'user_id': user_2['user_id'],
+                        'id': user_2['user_id'],
                         'links': {
                             'best_friend': user_3['user_id']
                         }
@@ -109,7 +109,7 @@ class CyclicSchemaTest(unittest.TestCase):
                 primary_key = 'parent_id'
                 type = 'parents'
 
-                additional = ('parent_id', 'name')
+                additional = ('name',)
 
             children = Linked('ChildSchema', many=True)
             favorite_child = Linked('ChildSchema')
@@ -119,7 +119,7 @@ class CyclicSchemaTest(unittest.TestCase):
                 primary_key = 'child_id'
                 type = 'children'
 
-                additional = ('child_id', 'name')
+                additional = ('name',)
 
             parent = Linked(ParentSchema)
 
@@ -147,7 +147,7 @@ class CyclicSchemaTest(unittest.TestCase):
 
         self.assertDictEqual(serialized_parent, {
             'parents': {
-                'parent_id': parent['parent_id'],
+                'id': parent['parent_id'],
                 'name': parent['name'],
                 'links': {
                     'favorite_child': parent['favorite_child']['child_id'],
@@ -157,7 +157,7 @@ class CyclicSchemaTest(unittest.TestCase):
             'linked': {
                 'children': [
                     {
-                        'child_id': child['child_id'],
+                        'id': child['child_id'],
                         'name': child['name'],
                         'links': {
                             'parent': parent['parent_id']

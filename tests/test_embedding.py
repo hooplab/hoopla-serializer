@@ -36,7 +36,7 @@ class TicketTypeSchema(Schema):
         primary_key = 'ticket_type_id'
         type = 'ticket_types'
 
-        additional = ('ticket_type_id', 'fee', 'name', 'price')
+        additional = ('fee', 'name', 'price')
 
 
 class TicketReservationSchema(Schema):
@@ -54,7 +54,7 @@ class ReservationSchema(Schema):
         primary_key = 'reservation_id'
         type = 'reservations'
 
-        additional = ('reservation_id', 'last_touched', 'created')
+        additional = ('last_touched', 'created')
 
     ticket_reservations = Embedded(TicketReservationSchema, many=True)
 
@@ -68,12 +68,13 @@ class EmbeddedSchemaTest(unittest.TestCase):
             'reservations': {
                 'last_touched': reservation['last_touched'],
                 'created': reservation['created'],
-                'reservation_id': reservation['reservation_id'],
+                'id': reservation['reservation_id'],
                 'ticket_reservations': [
                     {
                         'price': ticket['price'],
                         'fee': ticket['fee'],
                         'uuid': ticket['uuid'],
+                        'id': ticket['uuid'], # XXX: does it make sense to have an id on embedded resources?
                         'links': {
                             'ticket_type': ticket['ticket_type']['ticket_type_id']
                         }
@@ -81,7 +82,12 @@ class EmbeddedSchemaTest(unittest.TestCase):
                 ]
             },
             'linked': {
-                'ticket_types': [ticket_type]
+                'ticket_types': [{
+                    'id': ticket_type['ticket_type_id'],
+                    'fee': ticket_type['fee'],
+                    'name': ticket_type['name'],
+                    'price': ticket_type['price']
+                }]
             },
             'links': {
                 'reservations.ticket_reservations': {
