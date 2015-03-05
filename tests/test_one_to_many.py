@@ -8,7 +8,7 @@ class UserSchema(Schema):
         primary_key = 'user_id'
         type = 'users'
 
-        additional = ('user_id', 'name')
+        additional = ('name',)
 
 
 class OrganizationSchema(Schema):
@@ -16,7 +16,7 @@ class OrganizationSchema(Schema):
         primary_key = 'organization_id'
         type = 'organizations'
 
-        additional = ('organization_id', 'name')
+        additional = ('name',)
     owner = Linked("UserSchema")
 
 
@@ -25,7 +25,7 @@ class AdminSchema(Schema):
         primary_key = 'admin_id'
         type = 'admins'
 
-        additional = ('admin_id', 'name')
+        additional = ('name',)
 
     orgs = Linked("OrganizationSchema", many=True)
 
@@ -78,7 +78,10 @@ class NestedSchemaTest(unittest.TestCase):
         serialized_user = UserSchema().serialize(user_E)
 
         self.assertDictEqual(serialized_user, {
-            'users': user_E,
+            'users': {
+                'id': user_E['user_id'],
+                'name': user_E['name']
+            },
             'linked': {},
             'links': {}
         })
@@ -88,14 +91,17 @@ class NestedSchemaTest(unittest.TestCase):
 
         self.assertDictEqual(serialized_organization, {
             'organizations': {
-                'organization_id': organization_B['organization_id'],
+                'id': organization_B['organization_id'],
                 'name': organization_B['name'],
                 'links': {
                     'owner': organization_B['owner']['user_id']
                 }
             },
             'linked': {
-                'users': [organization_B['owner']]
+                'users': [{
+                    'id': organization_B['owner']['user_id'],
+                    'name': organization_B['owner']['name']
+                }]
             },
             'links': {
                 'organizations.owner': {
@@ -110,7 +116,7 @@ class NestedSchemaTest(unittest.TestCase):
         self.assertDictEqual(serialized, {
             'admins': {
                 'name': admin_A['name'],
-                'admin_id': admin_A['admin_id'],
+                'id': admin_A['admin_id'],
                 'links': {
                     'orgs': [org['organization_id'] for org in admin_A['orgs']]
                 }
@@ -118,14 +124,20 @@ class NestedSchemaTest(unittest.TestCase):
             'linked': {
                 'organizations': [
                     {
-                        'organization_id': org['organization_id'],
+                        'id': org['organization_id'],
                         'name': org['name'],
                         'links': {
                             'owner': org['owner']['user_id']
                         }
                     } for org in admin_A['orgs']
                 ],
-                'users': [user_E, user_F]
+                'users': [{
+                    'id': user_E['user_id'],
+                    'name': user_E['name']
+                }, {
+                    'id': user_F['user_id'],
+                    'name': user_F['name']
+                }]
             },
             'links': {
                 'admins.orgs': {

@@ -10,14 +10,14 @@ class AccessorTest(unittest.TestCase):
                 primary_key = 'organization_id'
                 type = 'organizations'
 
-                additional = ('organization_id', 'name')
+                additional = ('name',)
 
         class UserOrganizationSchema(Schema):
             class Meta:
                 primary_key = 'user_id'
                 type = 'users'
 
-                additional = ('user_id', 'name')
+                additional = ('name',)
 
             organizations = Linked(OrganizationMembershipSchema, many=True, attribute="memberships.organization")
 
@@ -39,14 +39,17 @@ class AccessorTest(unittest.TestCase):
 
         self.assertDictEqual(serialized_user, {
             "users": {
-                "user_id": user['user_id'],
+                "id": user['user_id'],
                 "name": user['name'],
                 "links": {
                     "organizations": [org['organization_id'] for org in organizations]
                 }
             },
             "linked": {
-                "organizations": organizations
+                "organizations": [{
+                    "id": org['organization_id'],
+                    "name": org['name']
+                } for org in organizations]
             },
             "links": {
                 "users.organizations": {

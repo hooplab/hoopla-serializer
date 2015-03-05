@@ -20,6 +20,7 @@ class Linked(Nested):
 class Embedded(Nested):
     pass
 
+
 class NamespaceOpts(SchemaOpts):
     def __init__(self, meta):
         SchemaOpts.__init__(self, meta)
@@ -36,7 +37,7 @@ class Schema(MSchema):
         if many:
             objects = []
             linked = {}
-            links = data[0]['links'] if len(data) != 0 else {}
+            links = data[0]['links'] if len(data) > 0 else {}
             for obj in data:
                 for field_type in obj['linked'].keys():
                     if field_type in obj['linked']:
@@ -68,7 +69,7 @@ class Schema(MSchema):
         else:
             if 'visited' not in self.context:
                 self.context['visited'] = dict()
-            key = self.fields[self.opts.primary_key].get_value(self.opts.primary_key, obj)
+            key = utils.get_value(self.opts.primary_key, obj)
             type_ = self.opts.type
             if type_ not in self.context['visited']:
                 self.context['visited'][type_] = set()
@@ -112,16 +113,15 @@ class Schema(MSchema):
     def _add_links(self, data):
         links = {}
 
-        def get_id(link, type_, primary_key):
-            return link.id if isinstance(link, Link) else link[type_][primary_key]
+        def get_id(link, type_):
+            return link.id if isinstance(link, Link) else link[type_]['id']
 
         for field in self.linked_fields:
-            primary_key = field.schema.opts.primary_key
             type_ = field.schema.opts.type
             if field.many:
-                links[field.name] = [get_id(link, type_, primary_key) for link in data[field.name]]
+                links[field.name] = [get_id(link, type_) for link in data[field.name]]
             else:
-                links[field.name] = get_id(data[field.name], type_, primary_key)
+                links[field.name] = get_id(data[field.name], type_)
 
         if links:
             data['links'] = links
@@ -165,6 +165,9 @@ class Schema(MSchema):
         self._add_links(data)
         links = self._extract_root_links(data)
         linked = self._extract_linked(data)
+
+        # set attribute 'id' on all serialized objects
+        data['id'] = utils.get_value(self.opts.primary_key, obj)
 
         return {
             self.opts.type: data,
