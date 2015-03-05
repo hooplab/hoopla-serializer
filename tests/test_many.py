@@ -51,6 +51,15 @@ events = [{
 
 
 class ManyTest(unittest.TestCase):
+    def test_empty(self):
+        serialized = EventSchema().serialize([], many=True)
+
+        self.assertDictEqual(serialized, {
+            "events": [],
+            "links": {},
+            "linked": {}
+        })
+
     def test_many(self):
         serialized = EventSchema().serialize(events, many=True)
 

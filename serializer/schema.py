@@ -33,11 +33,10 @@ class Schema(MSchema):
     def serialize(self, obj, many=False, update_fields=True, **kwargs):
 
         data = self.dump(obj, many, update_fields, **kwargs).data
-
         if many:
             objects = []
             linked = {}
-            links = data[0]['links']
+            links = data[0]['links'] if len(data) != 0 else {}
             for obj in data:
                 for field_type in obj['linked'].keys():
                     if field_type in obj['linked']:
