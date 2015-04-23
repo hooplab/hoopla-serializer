@@ -26,6 +26,7 @@ class NamespaceOpts(SchemaOpts):
         SchemaOpts.__init__(self, meta)
         self.primary_key = getattr(meta, 'primary_key')
         self.type = getattr(meta, 'type')
+        self.anonymous = getattr(meta, 'anonymous, False)
 
 
 class Schema(MSchema):
@@ -166,8 +167,10 @@ class Schema(MSchema):
         links = self._extract_root_links(data)
         linked = self._extract_linked(data)
 
-        # set attribute 'id' on all serialized objects
-        data['id'] = utils.get_value(self.opts.primary_key, obj)
+        # set attribute 'id' on all serialized objects if it is
+        # supposed to have an identity
+        if not self.opts.anonymous:
+            data['id'] = utils.get_value(self.opts.primary_key, obj)
 
         return {
             self.opts.type: data,
