@@ -26,7 +26,7 @@ class NamespaceOpts(SchemaOpts):
         SchemaOpts.__init__(self, meta)
         self.primary_key = getattr(meta, 'primary_key')
         self.type = getattr(meta, 'type')
-        self.anonymous = getattr(meta, 'anonymous, False)
+        self.anonymous = getattr(meta, 'anonymous', False)
 
 
 class Schema(MSchema):
